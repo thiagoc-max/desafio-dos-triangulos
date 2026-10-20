@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desafio dos Triângulos — duas etapas</title>
+<style>
+:root{--ink:#182235;--muted:#5c687a;--blue:#2457c5;--line:#d9e0ea;--paper:#f5f7fb;--green:#16825d;--red:#b83a45}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:#172b55;color:white;padding:22px 16px;text-align:center}header h1{margin:0 0 5px;font-size:clamp(1.45rem,4vw,2.2rem)}header p{margin:0;color:#dce7ff}
+main{max-width:1050px;margin:18px auto;padding:0 12px 30px}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 12px #1a2a4410}
+h2{font-size:1.2rem;margin:0 0 12px}label{display:block;font-weight:650;margin:8px 0 4px}input{width:100%;padding:11px;border:1px solid #bac5d5;border-radius:9px;font:inherit}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.buttons{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}button{border:0;border-radius:10px;padding:11px 15px;font:inherit;font-weight:700;cursor:pointer;background:var(--blue);color:white}button.secondary{background:#e8eef9;color:#203b75}button.good{background:var(--green)}button:disabled{opacity:.45;cursor:not-allowed}
+.status{padding:10px;border-radius:10px;background:#eef3ff;margin-top:10px}.hidden{display:none!important}.playgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,.85fr);gap:14px}.stagehead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.timer{font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums;background:#172b55;color:white;border-radius:10px;padding:7px 12px}
+#board{width:100%;max-width:490px;aspect-ratio:1/1;position:relative;margin:8px auto;background:#fbfcff;border:1px dashed #aebbd0;border-radius:12px;overflow:hidden;touch-action:none}
+.slot{position:absolute;width:24%;height:24%;clip-path:polygon(50% 0,100% 100%,0 100%);background:#f1f3f7;border:0;filter:drop-shadow(0 0 1px #758198);display:flex;align-items:center;justify-content:center;color:#1d2b44;font-weight:900;font-size:clamp(11px,2vw,17px)}
+.slot::after{content:"";position:absolute;inset:2px;clip-path:polygon(50% 0,100% 100%,0 100%);border:1px dashed #9aa6b8;pointer-events:none}
+.slot .num{position:absolute;z-index:1;top:46%;left:0;right:0;text-align:center;color:#1d2b44}
+#tray{min-height:150px;display:flex;flex-wrap:wrap;gap:9px;align-content:flex-start;padding:12px;background:#f2f5fa;border:1px dashed #c0cad9;border-radius:12px}
+.piece{width:62px;height:60px;position:relative;clip-path:polygon(50% 0,100% 100%,0 100%);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;cursor:grab;user-select:none;touch-action:none;filter:drop-shadow(0 2px 2px #0003);border:0}
+.piece .num{position:absolute;top:48%;left:0;right:0;text-align:center;color:#fff;text-shadow:0 1px 3px #000;font-size:15px}
+.piece.selected{outline:3px solid #ffb000;outline-offset:2px}.piece.dragging{position:fixed;z-index:1000;pointer-events:none;transform:scale(1.08)}
+.red{background:#d94b4b}.yellow{background:#e3b629;color:#202020}.green{background:#21966c}.blue{background:#3c70d8}
+.reference{min-height:100px;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;background:#fafcff}
+.refshape{display:grid;grid-template-columns:repeat(7,25px);grid-template-rows:repeat(4,25px);gap:2px;justify-content:center}
+.refcell{width:25px;height:25px;clip-path:polygon(50% 0,100% 100%,0 100%);border:1px solid #aab4c2;background:white}
+.refcell.red{background:#d94b4b}.refcell.yellow{background:#e3b629}.refcell.green{background:#21966c}.refcell.blue{background:#3c70d8}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:#f2f5fa;border-radius:10px;padding:12px}.metric b{display:block;font-size:1.2rem}
+.small{font-size:.9rem;color:var(--muted)}.ok{color:var(--green);font-weight:800}.bad{color:var(--red);font-weight:800}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:10px}
+@media(max-width:720px){.fields,.playgrid,.results{grid-template-columns:1fr}.piece{width:54px;height:53px}#board{max-width:440px}.refshape{grid-template-columns:repeat(7,21px);grid-template-rows:repeat(4,21px)}.refcell{width:21px;height:21px}}
+</style>
+</head>
+<body>
+<header><h1>Desafio dos Triângulos</h1><p>Duas etapas • montagem, tempo e comparação de desempenho</p></header>
+<main>
+<section class="card" id="registration">
+<h2>1. Cadastro do estudante</h2>
+<div class="fields"><div><label for="student">Nome do estudante</label><input id="student" autocomplete="name" placeholder="Nome completo"></div><div><label for="school">Escola</label><input id="school" placeholder="Nome da escola"></div><div><label for="classroom">Turma</label><input id="classroom" placeholder="Ex.: 7º A"></div></div>
+<div class="buttons"><button id="start">Iniciar atividade</button></div><p class="small">Ao iniciar, o cronômetro começa. O formato de referência tem 16 peças triangulares: 4 de cada cor.</p>
+</section>
+<section class="card hidden" id="game">
+<div class="stagehead"><div><h2 id="stageTitle">Etapa 1 — sem números</h2><div id="stageDesc" class="small">Monte o formato branco. As cores podem ficar em qualquer ordem.</div></div><div class="timer" id="timer">00:00</div></div>
+<div class="buttons">
+<button id="showShape" class="secondary">Mostrar forma</button>
+<button id="numberPieces" class="secondary hidden">Numerar peças</button>
+<button id="resetPieces" class="secondary">Misturar peças novamente</button>
+</div>
+<div class="reference hidden" id="reference"><div><div class="small" style="text-align:center;margin-bottom:7px">Modelo de referência</div><div id="refshape" class="refshape"></div></div></div>
+<div class="playgrid">
+<div class="card"><h2>Tabuleiro de montagem</h2><p class="small" id="boardHelp">Arraste as peças para os espaços triangulares. Complete todos os 16 espaços.</p><div id="board" aria-label="Tabuleiro de montagem"></div></div>
+<div class="card"><h2>Peças misturadas</h2><p class="small">No celular, toque em uma peça e depois toque no espaço desejado. No computador, arraste a peça.</p><div id="tray"></div><div class="buttons"><button id="submitStage" class="good" disabled>Enviar etapa 1</button></div></div>
+</div>
+<div id="feedback" class="status" aria-live="polite">Preencha o cadastro e inicie a atividade.</div>
+</section>
+<section class="card hidden" id="summary">
+<h2>Resultado do estudante</h2><div class="results">
+<div class="metric"><span>Etapa 1 — sem números</span><b id="sumT1">—</b><span id="sumS1" class="small">Aguardando</span></div>
+<div class="metric"><span>Etapa 2 — com números</span><b id="sumT2">—</b><span id="sumS2" class="small">Aguardando</span></div>
+<div class="metric"><span>Diferença de tempo</span><b id="sumDiff">—</b><span id="sumImprove" class="small">Aguardando a etapa 2</span></div>
+</div><p id="summaryText"></p><button id="restart" class="secondary">Reiniciar para outro estudante</button></section>
+<section class="card" id="teacherSettings"><h2>Configuração do professor</h2><p class="small">Cole aqui o URL do Apps Script terminado em <code>/exec</code>. Para que TODOS os celulares dos alunos enviem dados, este URL precisa ser colocado na constante PUBLISHED_ENDPOINT do arquivo antes de publicar o jogo. O campo abaixo serve para testar neste navegador.</p><label for="endpoint">URL do Apps Script</label><input id="endpoint" placeholder="https://script.google.com/macros/s/.../exec"><div class="buttons"><button id="saveEndpoint" class="secondary">Salvar URL neste navegador</button></div><div id="endpointMsg" class="small"></div></section>
+<footer>Desafio dos Triângulos • versão de teste — teste a integração antes de usar com estudantes.</footer>
+</main>
+<script>
+/* Para publicar para todos os estudantes, cole o URL do Apps Script em PUBLISHED_ENDPOINT antes de hospedar este HTML. */
+const PUBLISHED_ENDPOINT = "https://script.google.com/macros/s/AKfycbwgIMNQ6usHKQX-k9njaoeSdRlkPZ4EvbBqBgemYGUU8_Bx04e8Sd9hAM08GiV3NX5M/exec
+const COLORS = ["red","yellow","green","blue"];
+const COLOR_NAMES = {red:"Vermelha",yellow:"Amarela",green:"Verde",blue:"Azul"};
+// Slots triangulares em 4 fileiras: 1 + 3 + 5 + 7 = 16. Cada cor aparece quatro vezes.
+const TARGET_COLORS = ["blue","red","yellow","green","blue","red","yellow","green","blue","red","yellow","green","blue","red","yellow","green"];
+const rows = [[0],[0,1,2],[0,1,2,3,4],[0,1,2,3,4,5,6]];
+const positions = [];
+rows.forEach((r,ri)=>r.forEach((v)=>positions.push({row:ri,col:v, count:r.length})));
+let student={}, stage=0, startedAt=0, timerHandle=null, seconds=0, pieces=[], slotPiece=Array(16).fill(null), selectedPiece=null, stage1=null, stage2=null, shapeShown=false, numbered=false, submitted=false;
+const $=id=>document.getElementById(id);
+function fmt(s){s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function endpoint(){return PUBLISHED_ENDPOINT || localStorage.getItem("trianglesEndpoint") || $("endpoint").value.trim()}
+function mix(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildBoard(){
+ const board=$("board");board.innerHTML="";slotPiece=Array(16).fill(null);
+ positions.forEach((p,i)=>{
+  const el=document.createElement("div");el.className="slot";el.dataset.slot=i;
+  const width=100/7, height=23;
+  el.style.width=(width-0.8)+"%";el.style.height=height+"%";
+  el.style.left=((p.row===0?3:((7-p.count)/2)+p.col)*width)+"%";
+  el.style.top=(p.row*24+2)+"%";
+  if(numbered){const n=document.createElement("span");n.className="num";n.textContent=i+1;el.appendChild(n)}
+  el.addEventListener("pointerup",()=>{if(selectedPiece!==null)placePiece(selectedPiece,i)});
+  board.appendChild(el);
+ });
+}
+function makePieces(){
+ pieces=mix(COLORS.flatMap(c=>Array.from({length:4},(_,j)=>({id:c+"-"+j,color:c,number:0,slot:null}))));
+ pieces.forEach((p,i)=>{if(numbered){p.number=TARGET_COLORS.indexOf(p.color)+1; /* corrected below to one-to-one numbered assignment */}});
+ // Assign each of the 16 pieces a unique target number; target color is checked against that slot in stage 2.
+ const pool=TARGET_COLORS.map((color,i)=>({number:i+1,color}));
+ mix(pool);
+ pieces.forEach((p,i)=>{p.number=pool[i].number;p.color=pool[i].color;p.id="piece-"+p.number});
+ renderPieces(); buildBoard();
+}
+function renderPieces(){
+ const tray=$("tray");tray.innerHTML="";
+ pieces.filter(p=>p.slot===null).forEach(p=>{
+  const el=document.createElement("button");el.type="button";el.className="piece "+p.color+(selectedPiece===p.id?" selected":"");el.dataset.pid=p.id;el.setAttribute("aria-label",`Peça ${p.number}, ${COLOR_NAMES[p.color]}`);
+  if(numbered){const n=document.createElement("span");n.className="num";n.textContent=p.number;el.appendChild(n)}
+  el.addEventListener("click",()=>{selectedPiece=p.id;renderPieces();$("feedback").textContent="Peça selecionada. Agora toque no espaço desejado do tabuleiro."});
+  el.addEventListener("pointerdown",ev=>{if(submitted)return; el.setPointerCapture?.(ev.pointerId);});
+  el.addEventListener("dragstart",ev=>{ev.dataTransfer.setData("text/plain",p.id)});
+  el.draggable=true;tray.appendChild(el);
+ });
+}
+function placePiece(pid,slot){
+ if(submitted)return;
+ const p=pieces.find(x=>x.id===pid);if(!p)return;
+ if(slotPiece[slot]){const old=pieces.find(x=>x.id===slotPiece[slot]);if(old)old.slot=null}
+ if(p.slot!==null)slotPiece[p.slot]=null;
+ p.slot=slot;slotPiece[slot]=pid;selectedPiece=null;
+ renderPieces();renderPlaced();$("submitStage").disabled=slotPiece.some(x=>!x);
+ if(slotPiece.every(Boolean)){seconds=Math.floor((Date.now()-startedAt)/1000);$("timer").textContent=fmt(seconds);clearInterval(timerHandle);timerHandle=null;$("feedback").textContent="Todas as peças foram posicionadas. O cronômetro parou; confira a montagem e envie a etapa."}
+}
+function renderPlaced(){
+ document.querySelectorAll(".slot").forEach(el=>{
+  const i=Number(el.dataset.slot),pid=slotPiece[i];el.querySelectorAll(".placed").forEach(n=>n.remove());
+  if(pid){const p=pieces.find(x=>x.id===pid);el.style.background=p.color==="yellow"?"#e3b629":p.color==="red"?"#d94b4b":p.color==="green"?"#21966c":"#3c70d8";el.style.clipPath="polygon(50% 0,100% 100%,0 100%)";el.style.color="white";el.style.border="0";if(numbered){let n=el.querySelector(".num");if(!n){n=document.createElement("span");n.className="num";el.appendChild(n)}n.textContent=i+1}}
+  else {el.style.background="#f1f3f7";el.style.border="0";if(numbered&&!el.querySelector(".num")){const n=document.createElement("span");n.className="num";n.textContent=i+1;el.appendChild(n)}}
+ });
+}
+$("board").addEventListener("dragover",e=>e.preventDefault());
+$("board").addEventListener("drop",e=>{e.preventDefault();const slot=e.target.closest(".slot");const pid=e.dataTransfer.getData("text/plain");if(slot&&pid)placePiece(pid,Number(slot.dataset.slot))});
+function showReference(correctColors=false){
+ const box=$("refshape");box.innerHTML="";
+ positions.forEach((p,i)=>{const el=document.createElement("div");el.className="refcell"+(correctColors?" "+TARGET_COLORS[i]:"");el.style.gridColumn=(p.row===0?4:((7-p.count)/2)+p.col+1);el.style.gridRow=p.row+1;box.appendChild(el)});
+ $("reference").classList.remove("hidden");shapeShown=true;
+}
+function resetStage(s){
+ stage=s;numbered=s===2;submitted=false;seconds=0;selectedPiece=null;shapeShown=false;
+ $("reference").classList.add("hidden");$("showShape").classList.remove("hidden");$("numberPieces").classList.toggle("hidden",s!==2);
+ $("stageTitle").textContent=s===1?"Etapa 1 — sem números":"Etapa 2 — com números";
+ $("stageDesc").textContent=s===1?"Monte o formato branco; as cores podem ficar em qualquer ordem.":"Monte o formato e confira cores e números nas posições correspondentes.";
+ $("submitStage").textContent=s===1?"Enviar etapa 1":"Enviar etapa 2";$("submitStage").disabled=true;
+ $("boardHelp").textContent=s===1?"Complete os 16 espaços sem números. As peças podem ficar em qualquer ordem de cores.":"Cada espaço tem um número; coloque a peça com o número correspondente.";
+ $("feedback").textContent="O cronômetro está em andamento. Arraste ou selecione as peças para posicioná-las.";
+ makePieces();startedAt=Date.now();$("timer").textContent="00:00";clearInterval(timerHandle);timerHandle=setInterval(()=>{if(!submitted&&slotPiece.some(x=>!x)){$("timer").textContent=fmt((Date.now()-startedAt)/1000)}},250);
+}
+async function send(payload){
+ const url=endpoint();if(!url)return {ok:false,message:"URL do Apps Script não configurado neste navegador."};
+ try{await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});return {ok:true,message:"Envio solicitado. Confira a planilha para confirmar o recebimento."}}
+ catch(e){return {ok:false,message:"Não foi possível enviar: "+e.message}}
+}
+function correctStage1(){return slotPiece.every(Boolean)}
+function correctStage2(){return slotPiece.every((pid,i)=>{const p=pieces.find(x=>x.id===pid);return p&&p.number===i+1&&p.color===TARGET_COLORS[i]})}
+function payloadFor(s,elapsed,correct){return {
+  nome:student.nome, escola:student.escola, turma:student.turma,
+  etapa:s, condicao:s===1?"sem_numeros":"com_numeros",
+  tempo:fmt(elapsed), tempo_segundos:elapsed,
+  tempo_etapa_1:stage1?fmt(stage1.time):"", segundos_etapa_1:stage1?stage1.time:"",
+  etapa1_formato:"incorreto", etapa1_cores:"nao_validadas",
+  etapa2_formato:s===2?"avaliado":"",
+  avaliacao:s===1?"formato_incorreto_por_criterio; cores_nao_validadas":(correct?"formato_cores_numeros_corretos":"formato_cores_ou_numeros_incorretos"),
+  correta:correct, posicoes:JSON.stringify(slotPiece.map((pid,i)=>{const p=pieces.find(x=>x.id===pid);return {posicao:i+1,peca:p?p.id:"",cor:p?p.color:"",numero:p?p.number:""}})),
+  inicio:new Date(startedAt).toISOString(), conclusao:new Date().toISOString(),
+  atividade:"Desafio dos Triângulos", status:correct?"correto":"incorreto"
+}}
+$("start").addEventListener("click",()=>{
+ const nome=$("student").value.trim(),escola=$("school").value.trim(),turma=$("classroom").value.trim();
+ if(!nome||!escola||!turma){alert("Preencha nome, escola e turma para iniciar.");return}
+ student={nome,escola,turma};$("registration").classList.add("hidden");$("game").classList.remove("hidden");$("summary").classList.add("hidden");resetStage(1);
+});
+$("showShape").addEventListener("click",()=>showReference(stage===2));
+$("numberPieces").addEventListener("click",()=>{numbered=true;renderPieces();buildBoard();renderPlaced();$("numberPieces").disabled=true;$("feedback").textContent="Peças e espaços numerados. Coloque cada número no espaço correspondente."});
+$("resetPieces").addEventListener("click",()=>{if(submitted)return;makePieces();$("submitStage").disabled=true;$("feedback").textContent="Peças misturadas novamente. O cronômetro continua."});
+$("submitStage").addEventListener("click",async()=>{
+ if(slotPiece.some(x=>!x)||submitted)return;
+ seconds=Math.floor((Date.now()-startedAt)/1000);clearInterval(timerHandle);timerHandle=null;submitted=true;
+ const elapsed=seconds,correct=stage===1?correctStage1():correctStage2();
+ if(stage===1){
+  stage1={time:elapsed,correct:false};showReference(true);
+  $("feedback").innerHTML='<span class="bad">Avaliação da etapa 1: formato incorreto (critério definido para esta etapa).</span> Cores: não validadas.';
+  const r=await send(payloadFor(1,elapsed,false));$("feedback").textContent+=" "+r.message;
+  $("submitStage").disabled=true;
+  const next=document.createElement("button");next.className="good";next.textContent="Ir para a etapa 2";next.id="goStage2";next.onclick=()=>{next.remove();resetStage(2);$("numberPieces").disabled=false;$("feedback").textContent="Clique em Mostrar forma e depois em Numerar peças. O cronômetro da etapa 2 já está contando.";};$("submitStage").after(next);
+  $("summary").classList.remove("hidden");$("sumT1").textContent=fmt(elapsed);$("sumS1").textContent="Formato: incorreto; cores: não validadas";$("summaryText").textContent="A primeira etapa foi registrada como formato incorreto por definição; as cores não foram validadas. Conclua a segunda para ver a comparação."
+ }else{
+  stage2={time:elapsed,correct};showReference(true);
+  $("feedback").innerHTML=correct?'<span class="ok">Montagem correta!</span>':'<span class="bad">Montagem incorreta.</span> Confira os números e as cores nos espaços.';
+  const r=await send(payloadFor(2,elapsed,correct));$("feedback").textContent+=(correct?" ":" ")+r.message;
+  $("summary").classList.remove("hidden");$("sumT1").textContent=fmt(stage1.time);$("sumS1").textContent="Formato: incorreto; cores: não validadas";
+  $("sumT2").textContent=fmt(elapsed);$("sumS2").textContent=correct?"Formato, cores e números corretos":"Há diferenças de cor e/ou numeração";
+  const diff=stage1.time-elapsed;const pct=stage1.time>0?(diff/stage1.time)*100:0;
+  $("sumDiff").textContent=(diff>=0?"−":"+")+fmt(Math.abs(diff));
+  $("sumImprove").textContent=stage1.time===0?"Percentual indisponível (tempo inicial zero)":(diff>=0?`Melhora de ${pct.toFixed(1)}%`:`Tempo ${Math.abs(pct).toFixed(1)}% maior`);
+  $("summaryText").textContent=correct?"A segunda montagem foi avaliada como correta. Compare os tempos para observar a mudança de desempenho.":"A segunda montagem foi enviada, mas não passou em todos os critérios. O tempo é comparável; a correção também foi registrada.";
+ }
+});
+$("saveEndpoint").addEventListener("click",()=>{localStorage.setItem("trianglesEndpoint",$("endpoint").value.trim());$("endpointMsg").textContent="URL salvo neste navegador. Para os celulares dos estudantes, configure o endereço no arquivo antes de publicar.";});
+$("restart").addEventListener("click",()=>{clearInterval(timerHandle);stage=0;stage1=stage2=null;student={};$("game").classList.add("hidden");$("summary").classList.add("hidden");$("registration").classList.remove("hidden");$("student").value=$("school").value=$("classroom").value="";});
+</script>
+</body>
+</html>
